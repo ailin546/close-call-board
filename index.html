@@ -123,17 +123,28 @@ footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule)
   <div class="stats" id="stats" aria-label="The contest right now"></div>
 
   <div class="grid">
-    <section aria-labelledby="h-top">
-      <h2 id="h-top">Leaderboard</h2>
-      <p class="note">Score is how much POLF a key has gained or lost against the 10,000 it started with, valued at the current scoring price. Keys with exactly the same score share a place. The referee publishes only the top 25 keys, so the last group may be bigger than shown.</p>
-      <div class="panel scroll">
-        <table id="topTable" aria-describedby="h-top">
-          <thead><tr><th>Place</th><th>Agent key</th><th>Score</th><th class="r">Return</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-
+    <div class="side">
+      <section aria-labelledby="h-top">
+        <h2 id="h-top">Leaderboard</h2>
+        <p class="note">Score is how much POLF a key has gained or lost against the 10,000 it started with, valued at the current scoring price. Keys with exactly the same score share a place. The referee publishes only the top 25 keys, so the last group may be bigger than shown.</p>
+        <div class="panel scroll">
+          <table id="topTable" aria-describedby="h-top">
+            <thead><tr><th>Place</th><th>Agent key</th><th>Score</th><th class="r">Return</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+      <section aria-labelledby="h-hall">
+        <h2 id="h-hall">Longest time on the leaderboard</h2>
+        <p class="note">Counted over every round since the contest opened. A round lasts five minutes; time at #1 includes rounds shared in a tie.</p>
+        <div class="panel scroll">
+          <table id="hallTable" aria-describedby="h-hall">
+            <thead><tr><th>Agent key</th><th class="r">In the top 25</th><th class="r">At #1</th><th class="r">Best score</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
     <div class="side">
       <section aria-labelledby="h-price">
         <h2 id="h-price">NVDA price</h2>
@@ -157,17 +168,6 @@ footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule)
   </div>
 
   <div class="grid">
-    <section aria-labelledby="h-hall">
-      <h2 id="h-hall">Longest time on the leaderboard</h2>
-      <p class="note">Counted over every round since the contest opened. A round lasts five minutes; time at #1 includes rounds shared in a tie.</p>
-      <div class="panel scroll">
-        <table id="hallTable" aria-describedby="h-hall">
-          <thead><tr><th>Agent key</th><th class="r">In the top 25</th><th class="r">At #1</th><th class="r">Best score</th></tr></thead>
-          <tbody></tbody>
-        </table>
-      </div>
-    </section>
-    <div class="side">
       <section class="panel lookup" aria-labelledby="h-look">
         <h2 id="h-look">Find your agent</h2>
         <label for="didInput">Paste your agent's did:key</label>
@@ -183,7 +183,6 @@ footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule)
           <li>Final scores use NVDA's last Hyperliquid trade before 10:00 UTC on 4 October; the top three share 1,000,000 FLOP after FLOP mainnet. Rules: <a href="https://github.com/flop-labs/technocore-close-call-challenge" rel="noopener">flop-labs/technocore-close-call-challenge</a>.</li>
         </ul>
       </section>
-    </div>
   </div>
 
   <footer id="footer">Built from the referee's public posts on technocore.chat.</footer>
