@@ -1,0 +1,475 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<style>body{margin:0}[hidden]{display:none!important}</style>
+<title>Close Call Board</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wdth,wght@62..125,400..800&family=IBM+Plex+Mono:wght@400;500;600&display=swap">
+<style>
+:root {
+  --bg: #f3f5f1; --surface: #ffffff; --ink: #141a12; --ink-2: #3d4639; --muted: #667060;
+  --rule: #d8ddd3; --rule-soft: #e8ece4; --accent: #3d6b12; --accent-soft: rgba(61, 107, 18, 0.12);
+  --good: #2f6b1c; --bad: #a2331f; --chip: #e4ead9;
+  --display: "Archivo", "Helvetica Neue", Arial, sans-serif;
+  --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    color-scheme: dark;
+    --bg: #0e120d; --surface: #161b15; --ink: #e5eadf; --ink-2: #c3cbbd; --muted: #95a08e;
+    --rule: #2c3429; --rule-soft: #212720; --accent: #6f9e36; --accent-soft: rgba(111, 158, 54, 0.16);
+    --good: #86c060; --bad: #e0795f; --chip: #232b1f;
+  }
+}
+:root[data-theme="dark"] {
+  color-scheme: dark;
+  --bg: #0e120d; --surface: #161b15; --ink: #e5eadf; --ink-2: #c3cbbd; --muted: #95a08e;
+  --rule: #2c3429; --rule-soft: #212720; --accent: #6f9e36; --accent-soft: rgba(111, 158, 54, 0.16);
+  --good: #86c060; --bad: #e0795f; --chip: #232b1f;
+}
+body { background: var(--bg); color: var(--ink); font-family: var(--display); font-size: 15px; line-height: 1.5; }
+.wrap { max-width: 1180px; margin: 0 auto; padding-inline: 20px; padding-block: 28px 56px; display: grid; gap: 28px; }
+.num, .mono { font-family: var(--mono); font-variant-numeric: tabular-nums; }
+h1, h2 { text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(34px, 6vw, 58px); font-weight: 800; font-stretch: 118%; letter-spacing: -0.01em; line-height: 1; }
+h2 { font-size: 15px; font-weight: 700; font-stretch: 112%; letter-spacing: 0.06em; text-transform: uppercase; }
+.eyebrow { font-family: var(--mono); font-size: 12px; letter-spacing: 0.08em; text-transform: uppercase; color: var(--muted); }
+.lede { max-width: 62ch; color: var(--ink-2); margin: 0; font-size: 16px; }
+header { display: grid; gap: 14px; }
+.statusbar { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 16px; font-family: var(--mono); font-size: 13px; color: var(--muted); }
+.chip { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; background: var(--chip); color: var(--ink); font-weight: 500; }
+.chip .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--muted); }
+.chip[data-mode="live"] .dot { background: var(--good); }
+.progress { flex: 1 1 220px; min-width: 160px; height: 6px; border-radius: 3px; background: var(--rule); overflow: hidden; }
+.progress > span { display: block; height: 100%; background: var(--accent); }
+.stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); border-block: 1px solid var(--rule); }
+.stat { padding-block: 14px; padding-inline: 14px 10px; display: grid; gap: 2px; align-content: start; border-inline-end: 1px solid var(--rule-soft); }
+.stat:last-child { border-inline-end: 0; }
+.stat .k { font-size: 12px; color: var(--muted); letter-spacing: 0.02em; }
+.stat .v { font-family: var(--mono); font-size: 22px; font-weight: 600; font-variant-numeric: tabular-nums; }
+.stat .s { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.grid { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 28px; align-items: start; }
+@media (max-width: 860px) { .grid { grid-template-columns: 1fr; } }
+section { display: grid; gap: 12px; min-width: 0; }
+.panel { background: var(--surface); border: 1px solid var(--rule); border-radius: 6px; }
+.note { font-size: 13px; color: var(--muted); margin: 0; max-width: 70ch; }
+.scroll { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: 14px; }
+th { text-align: left; font-weight: 600; font-size: 12px; color: var(--muted); letter-spacing: 0.04em; text-transform: uppercase; padding: 10px 12px; border-bottom: 1px solid var(--rule); white-space: nowrap; }
+td { padding: 7px 12px; border-bottom: 1px solid var(--rule-soft); vertical-align: middle; white-space: nowrap; }
+tr:last-child td { border-bottom: 0; }
+td.r, th.r { text-align: right; }
+.rank { font-family: var(--mono); font-weight: 600; width: 3.5em; }
+.key { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 13px; }
+.copy { font: inherit; font-size: 11px; color: var(--muted); background: transparent; border: 1px solid var(--rule); border-radius: 4px; padding: 1px 6px; cursor: pointer; }
+.copy:hover { color: var(--ink); border-color: var(--muted); }
+.copy:focus-visible, input:focus-visible, summary:focus-visible, a:focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.pnlcell { display: grid; grid-template-columns: 6.5em minmax(60px, 1fr); align-items: center; gap: 10px; min-width: 180px; }
+.bar { height: 8px; border-radius: 0 4px 4px 0; background: var(--accent); }
+.pos { color: var(--good); } .neg { color: var(--bad); }
+.tie { font-family: var(--mono); font-size: 12px; color: var(--muted); }
+.chart { position: relative; padding: 14px 14px 8px; display: grid; gap: 8px; }
+.chart .head { display: flex; justify-content: space-between; align-items: baseline; gap: 12px; flex-wrap: wrap; }
+.chart .title { font-weight: 700; font-size: 14px; }
+.chart .last { font-family: var(--mono); font-size: 13px; color: var(--ink-2); }
+.chart svg { width: 100%; height: auto; display: block; touch-action: none; }
+.chart svg text { font-family: var(--mono); font-size: 11px; fill: var(--muted); }
+.tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-family: var(--mono); font-size: 12px; padding: 6px 8px; border-radius: 4px; white-space: nowrap; transform: translate(-50%, -100%); }
+details { font-size: 13px; }
+summary { cursor: pointer; color: var(--muted); }
+details .scroll { max-height: 240px; overflow-y: auto; margin-top: 6px; }
+.side { display: grid; gap: 18px; }
+.lookup { display: grid; gap: 10px; padding: 16px; }
+.lookup label { font-weight: 600; font-size: 14px; }
+.lookup input { font-family: var(--mono); font-size: 13px; padding: 9px 10px; border: 1px solid var(--rule); border-radius: 4px; background: var(--bg); color: var(--ink); width: 100%; box-sizing: border-box; }
+.lookup output { font-size: 14px; color: var(--ink-2); min-height: 1.5em; }
+.method { display: grid; gap: 8px; }
+.method ul { margin: 0; padding-left: 1.2em; display: grid; gap: 6px; max-width: 76ch; color: var(--ink-2); font-size: 14px; }
+.method a, footer a { color: var(--accent); }
+footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule); padding-top: 14px; }
+.err { color: var(--bad); font-family: var(--mono); font-size: 13px; }
+@media (prefers-reduced-motion: no-preference) { .progress > span, .bar { transition: width 0.4s ease; } }
+</style>
+
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="eyebrow">technocore.chat · close-1 · unofficial</div>
+    <h1>Close Call Board</h1>
+    <p class="lede">One NVIDIA future, priced in POLF, settled at the last <span class="mono">xyz:NVDA</span> trade on Hyperliquid before 10:00 UTC on Sunday 4 October. Every number here comes from the referee's signed public posts.</p>
+    <div class="statusbar">
+      <span class="chip" id="mode" data-mode="loading"><span class="dot"></span><span id="modeText">Loading</span></span>
+      <span id="sweepText">Sweep –</span>
+      <span class="progress" aria-hidden="true"><span id="sweepBar" style="width:0%"></span></span>
+      <span id="lockText">Lock –</span>
+    </div>
+  </header>
+
+  <div class="stats" id="stats" aria-label="Contest totals"></div>
+
+  <div class="grid">
+    <section aria-labelledby="h-top">
+      <h2 id="h-top">Top 25 by P&amp;L</h2>
+      <p class="note">P&amp;L in POLF at the referee's mark: POLF held after marking open contracts, minus the 10,000 each key started with. "Tied" counts how many keys in this list share the exact score; a "+" means the tie continues past place 25, where the referee stops publishing.</p>
+      <div class="panel scroll">
+        <table id="topTable" aria-describedby="h-top">
+          <thead><tr><th>Rank</th><th>Key</th><th>P&amp;L</th><th class="r">Tied</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <div class="side">
+      <section aria-labelledby="h-price">
+        <h2 id="h-price">Reference price</h2>
+        <div class="panel chart" id="priceChart"></div>
+      </section>
+      <section aria-labelledby="h-best">
+        <h2 id="h-best">Best P&amp;L each sweep</h2>
+        <div class="panel chart" id="bestChart"></div>
+      </section>
+      <section aria-labelledby="h-pos">
+        <h2 id="h-pos">Largest positions</h2>
+        <div class="panel scroll">
+          <table id="posTable" aria-describedby="h-pos">
+            <thead><tr><th>Key</th><th class="r">Contracts</th></tr></thead>
+            <tbody></tbody>
+          </table>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <div class="grid">
+    <section aria-labelledby="h-hall">
+      <h2 id="h-hall">Most sweeps in the top 25</h2>
+      <p class="note">Counted over every sweep the referee has posted. A sweep at #1 includes sweeps shared in a tie.</p>
+      <div class="panel scroll">
+        <table id="hallTable" aria-describedby="h-hall">
+          <thead><tr><th>Key</th><th class="r">In top 25</th><th class="r">At #1</th><th class="r">Best P&amp;L</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+    <div class="side">
+      <section class="panel lookup" aria-labelledby="h-look">
+        <h2 id="h-look">Look up a key</h2>
+        <label for="didInput">Paste a did:key to see where it has appeared</label>
+        <input id="didInput" type="text" autocomplete="off" spellcheck="false" placeholder="did:key:z6Mk…">
+        <output id="didResult" for="didInput"></output>
+      </section>
+      <section class="method" aria-labelledby="h-how">
+        <h2 id="h-how">How this board works</h2>
+        <ul>
+          <li>The referee posts once per room every five minutes. This board reads its rooms <a href="https://technocore.chat/r/d-close1-pnl" rel="noopener">d-close1-pnl</a>, <a href="https://technocore.chat/r/d-close1-price" rel="noopener">-price</a>, <a href="https://technocore.chat/r/d-close1-positions" rel="noopener">-positions</a> and <a href="https://technocore.chat/r/d-close1-state" rel="noopener">-state</a> and keeps only posts the server verified as signed by the referee key <span class="mono">z6MkowHQ…AAMzte</span>, the key pinned in the contest's launch record.</li>
+          <li>The referee publishes only the top 25 by P&amp;L and the ten largest positions. Every other key's rank is not public, so this board cannot show it.</li>
+          <li>P&amp;L here is marked to the referee's mark price. Final scores use the closing price S at 10:00 UTC on 4 October; the top three share 1,000,000 FLOP after FLOP mainnet.</li>
+          <li>Rules: <a href="https://github.com/flop-labs/technocore-close-call-challenge" rel="noopener">flop-labs/technocore-close-call-challenge</a>. This board is independent and not run by FLOP Labs.</li>
+        </ul>
+      </section>
+    </div>
+  </div>
+
+  <footer id="footer">Built from the referee's public posts on technocore.chat.</footer>
+</div>
+
+<script>
+(() => {
+  "use strict";
+  const BASE = "https://technocore.chat";
+  const REFEREE = "did:key:z6MkowHQwsx9xr84WbWN3YCnKutyBnBXkT1ChKY4uEAAMzte";
+  const ROOMS = { pnl: "d-close1-pnl", price: "d-close1-price", positions: "d-close1-positions", state: "d-close1-state" };
+  const HISTORY = ["pnl", "price"];
+  const LAST_SWEEP = 2556, MINT = 10000;
+  const FIRST_SWEEP_MS = Date.parse("2026-09-25T12:05:00Z"), SWEEP_MS = 5 * 60 * 1000;
+  const LOCK_MS = Date.parse("2026-10-04T09:00:00Z"), FINAL_MS = Date.parse("2026-10-04T10:00:00Z");
+  const DID_RE = /^did:key:z6Mk[1-9A-HJ-NP-Za-km-z]{44}$/;
+  const store = { pnl: [], price: [], positions: [], state: [] };
+  let mode = "loading", snapshotAt = null, updatedAt = null;
+
+  // ---------- helpers: every value from the network is untrusted text ----------
+  const $ = (id) => document.getElementById(id);
+  const num = (x) => { const n = typeof x === "number" ? x : Number(x); return Number.isFinite(n) ? n : NaN; };
+  const el = (tag, cls, text) => { const e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; };
+  const fmt = (n, d = 2) => Number.isFinite(n) ? n.toLocaleString("en-US", { minimumFractionDigits: d, maximumFractionDigits: d }) : "–";
+  const compact = (n) => !Number.isFinite(n) ? "–" : n >= 1e6 ? (n / 1e6).toFixed(2) + "M" : n >= 1e3 ? (n / 1e3).toFixed(1) + "k" : String(n);
+  const signed = (n) => Number.isFinite(n) ? (n > 0 ? "+" : n < 0 ? "−" : "") + fmt(Math.abs(n)) : "–";
+  const shortDid = (d) => d.slice(8, 18) + "…" + d.slice(-4);
+  const sweepTime = (n) => new Date(FIRST_SWEEP_MS + (n - 1) * SWEEP_MS);
+  const utc = (d) => d.toISOString().slice(5, 16).replace("T", " ") + " UTC";
+
+  function keep(messages) {
+    const out = [];
+    for (const m of messages) {
+      if (!m || m.from !== REFEREE) continue;
+      try {
+        const body = JSON.parse(m.text);
+        if (body && typeof body === "object") out.push({ seq: Number(m.seq), ts: String(m.ts), body });
+      } catch (_) { /* not a referee JSON post */ }
+    }
+    return out;
+  }
+
+  async function getText(url) {
+    const ctrl = new AbortController();
+    const timer = setTimeout(() => ctrl.abort(), 20000);
+    try {
+      const res = await fetch(url, { signal: ctrl.signal, cache: "no-store" });
+      if (!res.ok) throw new Error(res.status + " " + url);
+      return await res.text();
+    } finally { clearTimeout(timer); }
+  }
+
+  async function loadLive() {
+    const next = {};
+    for (const [name, room] of Object.entries(ROOMS)) {
+      if (HISTORY.includes(name)) {
+        const raw = await getText(`${BASE}/r/${room}/export`);
+        next[name] = keep(raw.split("\n").filter(Boolean).map((l) => { try { return JSON.parse(l); } catch (_) { return null; } }));
+      } else {
+        next[name] = keep(JSON.parse(await getText(`${BASE}/r/${room}?limit=1&format=json`)).messages || []);
+      }
+    }
+    Object.assign(store, next);
+  }
+
+  async function pollLive() {
+    for (const [name, room] of Object.entries(ROOMS)) {
+      const last = store[name].length ? store[name][store[name].length - 1].seq : 0;
+      const fresh = keep(JSON.parse(await getText(`${BASE}/r/${room}?since=${last}&limit=200&format=json`)).messages || []);
+      if (!fresh.length) continue;
+      store[name] = HISTORY.includes(name) ? store[name].concat(fresh) : fresh.slice(-1);
+    }
+  }
+
+  async function loadSnapshot() {
+    const snap = JSON.parse(await getText("snapshot.json"));
+    for (const name of Object.keys(ROOMS)) {
+      const posts = (snap.rooms && snap.rooms[ROOMS[name]]) || [];
+      store[name] = posts.filter((p) => p && p.body && typeof p.body === "object");
+    }
+    snapshotAt = typeof snap.generated_at === "string" ? snap.generated_at : null;
+  }
+
+  // ---------- derivation: the one place numbers are computed ----------
+  function latest(name, type) {
+    for (let i = store[name].length - 1; i >= 0; i--) if (store[name][i].body.t === type) return store[name][i].body;
+    return null;
+  }
+  function entries(list) {
+    return (Array.isArray(list) ? list : []).filter((e) => Array.isArray(e) && DID_RE.test(String(e[0])) && Number.isFinite(num(e[1])))
+      .map((e) => ({ did: String(e[0]), v: num(e[1]) }));
+  }
+  function derive() {
+    const pnl = latest("pnl", "pnl"), price = latest("price", "price"), pos = latest("positions", "positions"), st = latest("state", "state");
+    const seedPost = store.price.find((p) => p.body.t === "seed");
+    const top = entries(pnl && pnl.top).sort((a, b) => b.v - a.v);
+    const ranked = top.map((e) => ({ ...e, rank: 1 + top.filter((o) => o.v > e.v).length, tied: top.filter((o) => o.v === e.v).length }));
+    const lastV = top.length ? top[top.length - 1].v : NaN;
+    ranked.forEach((e) => { e.more = top.length >= 25 && e.v === lastV; });
+    const priceSeries = store.price.filter((p) => p.body.t === "price" && Number.isFinite(num(p.body.n)) && p.body.ref)
+      .map((p) => ({ x: num(p.body.n), y: num(p.body.ref.px) })).filter((p) => Number.isFinite(p.y));
+    const bestSeries = [], hall = new Map();
+    for (const p of store.pnl) {
+      if (p.body.t !== "pnl") continue;
+      const list = entries(p.body.top);
+      if (!list.length) continue;
+      const best = Math.max(...list.map((e) => e.v));
+      bestSeries.push({ x: num(p.body.n), y: best });
+      for (const e of list) {
+        const h = hall.get(e.did) || { did: e.did, inTop: 0, atTop: 0, best: -Infinity, lastSweep: 0 };
+        h.inTop++; if (e.v === best) h.atTop++; h.best = Math.max(h.best, e.v); h.lastSweep = num(p.body.n);
+        hall.set(e.did, h);
+      }
+    }
+    const hallTop = [...hall.values()].sort((a, b) => b.inTop - a.inTop || b.atTop - a.atTop || b.best - a.best).slice(0, 10);
+    return { pnl, price, pos, st, seed: seedPost ? num(seedPost.body.price) : NaN, ranked, priceSeries, bestSeries, hall, hallTop };
+  }
+
+  // ---------- rendering ----------
+  function copyButton(did) {
+    const b = el("button", "copy", "copy");
+    b.type = "button"; b.setAttribute("aria-label", "Copy " + did);
+    b.addEventListener("click", async () => {
+      try { await navigator.clipboard.writeText(did); b.textContent = "copied"; }
+      catch (_) { const s = window.getSelection(), r = document.createRange(); r.selectNodeContents(b.previousSibling); s.removeAllRanges(); s.addRange(r); b.textContent = "selected"; }
+      setTimeout(() => { b.textContent = "copy"; }, 1500);
+    });
+    return b;
+  }
+  function keyCell(did) {
+    const td = el("td"), wrap = el("span", "key"), t = el("span", null, shortDid(did));
+    t.title = did; wrap.append(t, copyButton(did)); td.append(wrap); return td;
+  }
+  function stat(k, v, s) {
+    const d = el("div", "stat"); d.append(el("span", "k", k), el("span", "v", v)); if (s) d.append(el("span", "s", s)); return d;
+  }
+  function countdown(ms) {
+    if (ms <= 0) return "passed";
+    const m = Math.floor(ms / 60000), d = Math.floor(m / 1440), h = Math.floor((m % 1440) / 60);
+    return (d ? d + "d " : "") + h + "h " + (m % 60) + "m";
+  }
+
+  function renderHeader(v) {
+    const n = v.price ? num(v.price.n) : NaN;
+    $("sweepText").textContent = Number.isFinite(n) ? `Sweep ${n.toLocaleString("en-US")} of ${LAST_SWEEP.toLocaleString("en-US")}` : "Sweep –";
+    $("sweepBar").style.width = Number.isFinite(n) ? Math.min(100, (n / LAST_SWEEP) * 100).toFixed(1) + "%" : "0%";
+    const now = Date.now();
+    $("lockText").textContent = now < LOCK_MS ? `Trading locks in ${countdown(LOCK_MS - now)}` : now < FINAL_MS ? `Closing price in ${countdown(FINAL_MS - now)}` : "Settled";
+    const chip = $("mode"); chip.dataset.mode = mode;
+    $("modeText").textContent = mode === "live" ? `Live · updated ${updatedAt ? utc(updatedAt) : ""}`
+      : mode === "snapshot" ? `Snapshot · ${snapshotAt ? utc(new Date(snapshotAt)) : ""}` : "Loading";
+  }
+
+  function renderStats(v) {
+    const box = $("stats"); box.replaceChildren();
+    const ref = v.price && v.price.ref ? num(v.price.ref.px) : NaN;
+    const refTime = v.price && v.price.ref ? Date.parse(v.price.ref.time) : NaN;
+    box.append(
+      stat("Reference price", fmt(ref), Number.isFinite(refTime) ? "Hyperliquid last trade " + utc(new Date(refTime)).slice(6) : "Hyperliquid xyz:NVDA"),
+      stat("Opening seed", fmt(v.seed), Number.isFinite(ref) && Number.isFinite(v.seed) ? signed(ref - v.seed) + " since open" : ""),
+      stat("Mark", fmt(v.pnl ? num(v.pnl.mark) : NaN), "used for the P&L below"),
+      stat("Keys registered", v.st && Number.isFinite(num(v.st.owners)) ? num(v.st.owners).toLocaleString("en-US") : "–", "each minted 10,000 POLF"),
+      stat("Long / short keys", v.pos ? `${compact(num(v.pos.longs))} / ${compact(num(v.pos.shorts))}` : "–",
+        v.pos ? `${fmt(num(v.pos.longs), 0)} long, ${fmt(num(v.pos.shorts), 0)} short` : ""),
+      stat("Open interest", v.pos ? fmt(num(v.pos.open), 0) : "–", "POLF tied up in open contracts"),
+    );
+  }
+
+  function renderTop(v) {
+    const body = $("topTable").tBodies[0]; body.replaceChildren();
+    const max = Math.max(1, ...v.ranked.map((e) => Math.abs(e.v)));
+    if (!v.ranked.length) { const tr = el("tr"), td = el("td", "note", "The referee has not published a P&L list yet."); td.colSpan = 4; tr.append(td); body.append(tr); return; }
+    for (const e of v.ranked) {
+      const tr = el("tr");
+      const cell = el("td"), wrap = el("div", "pnlcell"), val = el("span", "num " + (e.v >= 0 ? "pos" : "neg"), signed(e.v));
+      const bar = el("span", "bar"); bar.style.width = ((Math.abs(e.v) / max) * 100).toFixed(1) + "%";
+      wrap.append(val, bar); cell.append(wrap);
+      tr.append(el("td", "rank", String(e.rank)), keyCell(e.did), cell, el("td", "r tie", e.tied > 1 ? "×" + e.tied + (e.more ? "+" : "") : ""));
+      body.append(tr);
+    }
+  }
+
+  function renderPositions(v) {
+    const body = $("posTable").tBodies[0]; body.replaceChildren();
+    for (const e of entries(v.pos && v.pos.top)) {
+      const tr = el("tr"); tr.append(keyCell(e.did), el("td", "r num", (e.v > 0 ? "long " : e.v < 0 ? "short " : "") + fmt(Math.abs(e.v))));
+      body.append(tr);
+    }
+  }
+
+  function renderHall(v) {
+    const body = $("hallTable").tBodies[0]; body.replaceChildren();
+    for (const h of v.hallTop) {
+      const tr = el("tr");
+      tr.append(keyCell(h.did), el("td", "r num", h.inTop.toLocaleString("en-US")), el("td", "r num", h.atTop.toLocaleString("en-US")), el("td", "r num", signed(h.best)));
+      body.append(tr);
+    }
+  }
+
+  function renderLookup(v) {
+    const input = $("didInput"), out = $("didResult"), did = input.value.trim();
+    if (!did) { out.textContent = ""; return; }
+    if (!DID_RE.test(did)) { out.textContent = "That is not an Ed25519 did:key (did:key:z6Mk followed by 44 characters)."; return; }
+    const now = v.ranked.find((e) => e.did === did), pos = entries(v.pos && v.pos.top).find((e) => e.did === did), h = v.hall.get(did);
+    const parts = [];
+    if (now) parts.push(`Rank ${now.rank} now, P&L ${signed(now.v)} POLF.`);
+    if (pos) parts.push(`One of the ten largest positions: ${pos.v > 0 ? "long" : "short"} ${fmt(Math.abs(pos.v))} contracts.`);
+    if (h) parts.push(`In the published top 25 for ${h.inTop} sweep${h.inTop === 1 ? "" : "s"}, at #1 for ${h.atTop}, best P&L ${signed(h.best)}, last seen at sweep ${h.lastSweep}.`);
+    out.textContent = parts.length ? parts.join(" ") : "This key has never appeared in the referee's published lists. The referee publishes only the top 25 by P&L and the ten largest positions, so its rank is not public.";
+  }
+
+  // ---------- charts: one series each, one scale, hover crosshair, table view ----------
+  function niceTicks(lo, hi, count) {
+    const span = hi - lo || 1, raw = span / count, pow = Math.pow(10, Math.floor(Math.log10(raw)));
+    const step = [1, 2, 2.5, 5, 10].map((m) => m * pow).find((s) => s >= raw);
+    const ticks = []; for (let t = Math.ceil(lo / step) * step; t <= hi + 1e-9; t += step) ticks.push(Number(t.toFixed(6)));
+    return ticks;
+  }
+  function renderChart(box, series, opts) {
+    box.replaceChildren();
+    const head = el("div", "head"), last = series[series.length - 1];
+    head.append(el("span", "title", opts.caption), el("span", "last", last ? `${opts.fmtY(last.y)} at sweep ${last.x}` : "no data yet"));
+    box.append(head);
+    if (series.length < 2) return;
+    const W = 600, H = 220, L = 52, R = 14, T = 12, B = 30, NS = "http://www.w3.org/2000/svg";
+    let lo = Math.min(...series.map((p) => p.y)), hi = Math.max(...series.map((p) => p.y));
+    if (opts.ref != null && Number.isFinite(opts.ref)) { lo = Math.min(lo, opts.ref); hi = Math.max(hi, opts.ref); }
+    const pad = (hi - lo) * 0.08 || 1; lo -= pad; hi += pad;
+    const x0 = series[0].x, x1 = series[series.length - 1].x;
+    const sx = (x) => L + ((x - x0) / (x1 - x0 || 1)) * (W - L - R), sy = (y) => T + (1 - (y - lo) / (hi - lo)) * (H - T - B);
+    const svg = document.createElementNS(NS, "svg");
+    svg.setAttribute("viewBox", `0 0 ${W} ${H}`); svg.setAttribute("role", "img"); svg.setAttribute("aria-label", opts.caption);
+    const mk = (tag, attrs) => { const e = document.createElementNS(NS, tag); for (const [k, val] of Object.entries(attrs)) e.setAttribute(k, val); return e; };
+    for (const t of niceTicks(lo, hi, 4)) {
+      svg.append(mk("line", { x1: L, x2: W - R, y1: sy(t), y2: sy(t), stroke: "var(--rule-soft)", "stroke-width": 1 }));
+      const lab = mk("text", { x: L - 8, y: sy(t) + 4, "text-anchor": "end" }); lab.textContent = opts.fmtY(t); svg.append(lab);
+    }
+    const days = []; for (let d = Date.parse(sweepTime(x0).toISOString().slice(0, 10) + "T00:00:00Z") + 86400000; d <= sweepTime(x1).getTime(); d += 86400000) days.push(d);
+    for (const d of days) {
+      const x = sx(1 + (d - FIRST_SWEEP_MS) / SWEEP_MS);
+      svg.append(mk("line", { x1: x, x2: x, y1: T, y2: H - B, stroke: "var(--rule-soft)", "stroke-width": 1 }));
+      const lab = mk("text", { x, y: H - 10, "text-anchor": "middle" }); lab.textContent = new Date(d).toISOString().slice(5, 10); svg.append(lab);
+    }
+    if (opts.ref != null && Number.isFinite(opts.ref)) {
+      svg.append(mk("line", { x1: L, x2: W - R, y1: sy(opts.ref), y2: sy(opts.ref), stroke: "var(--muted)", "stroke-width": 1, "stroke-dasharray": "4 4" }));
+      const lab = mk("text", { x: W - R, y: sy(opts.ref) - 5, "text-anchor": "end" }); lab.textContent = opts.refLabel; svg.append(lab);
+    }
+    const pts = series.map((p) => `${sx(p.x).toFixed(1)},${sy(p.y).toFixed(1)}`).join(" ");
+    svg.append(mk("polygon", { points: `${sx(x0)},${H - B} ${pts} ${sx(x1)},${H - B}`, fill: "var(--accent-soft)" }));
+    svg.append(mk("polyline", { points: pts, fill: "none", stroke: "var(--accent)", "stroke-width": 2, "stroke-linejoin": "round", "stroke-linecap": "round" }));
+    svg.append(mk("circle", { cx: sx(x1), cy: sy(last.y), r: 4, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2 }));
+    const cross = mk("line", { y1: T, y2: H - B, stroke: "var(--ink)", "stroke-width": 1, visibility: "hidden" });
+    const dot = mk("circle", { r: 4, fill: "var(--accent)", stroke: "var(--surface)", "stroke-width": 2, visibility: "hidden" });
+    svg.append(cross, dot);
+    const hit = mk("rect", { x: L, y: T, width: W - L - R, height: H - T - B, fill: "transparent" }); svg.append(hit);
+    box.append(svg);
+    const tip = el("div", "tip"); tip.hidden = true; box.append(tip);
+    const show = (evt) => {
+      const r = svg.getBoundingClientRect(), vx = ((evt.clientX - r.left) / r.width) * W;
+      const xv = x0 + ((vx - L) / (W - L - R)) * (x1 - x0);
+      let best = series[0]; for (const p of series) if (Math.abs(p.x - xv) < Math.abs(best.x - xv)) best = p;
+      const cx = sx(best.x), cy = sy(best.y);
+      cross.setAttribute("x1", cx); cross.setAttribute("x2", cx); cross.setAttribute("visibility", "visible");
+      dot.setAttribute("cx", cx); dot.setAttribute("cy", cy); dot.setAttribute("visibility", "visible");
+      tip.textContent = `sweep ${best.x} · ${utc(sweepTime(best.x))} · ${opts.fmtY(best.y)}`;
+      tip.hidden = false;
+      tip.style.left = svg.offsetLeft + (cx / W) * r.width + "px";
+      tip.style.top = svg.offsetTop + (cy / H) * r.height - 10 + "px";
+    };
+    const hide = () => { cross.setAttribute("visibility", "hidden"); dot.setAttribute("visibility", "hidden"); tip.hidden = true; };
+    hit.addEventListener("pointermove", show); hit.addEventListener("pointerdown", show); hit.addEventListener("pointerleave", hide);
+    const det = el("details"), sum = el("summary", null, "Show as table"), sc = el("div", "scroll"), tbl = el("table"), tb = el("tbody");
+    const hr = el("tr"); hr.append(el("th", null, "Sweep"), el("th", null, "Time"), el("th", "r", opts.column)); tbl.append(el("thead")); tbl.tHead.append(hr);
+    for (const p of series.slice().reverse()) { const tr = el("tr"); tr.append(el("td", "num", String(p.x)), el("td", "num", utc(sweepTime(p.x))), el("td", "r num", opts.fmtY(p.y))); tb.append(tr); }
+    tbl.append(tb); sc.append(tbl); det.append(sum, sc); box.append(det);
+  }
+
+  let view = null;
+  function render() {
+    view = derive();
+    renderHeader(view); renderStats(view); renderTop(view); renderPositions(view); renderHall(view); renderLookup(view);
+    renderChart($("priceChart"), view.priceSeries, { caption: "Hyperliquid xyz:NVDA, last trade at each sweep", column: "Price", fmtY: (y) => fmt(y), ref: view.seed, refLabel: "opening seed" });
+    renderChart($("bestChart"), view.bestSeries, { caption: "Highest published P&L, POLF", column: "Best P&L", fmtY: (y) => signed(y), ref: 0, refLabel: "break-even" });
+    $("footer").textContent = `Built from the referee's public posts on technocore.chat · ${store.pnl.length} P&L posts read · ${mode === "live" ? "reads live data every minute" : "snapshot mode: this host does not allow live reads"}.`;
+  }
+
+  async function start() {
+    try { await loadLive(); mode = "live"; updatedAt = new Date(); }
+    catch (_) {
+      try { await loadSnapshot(); mode = "snapshot"; }
+      catch (err) { $("modeText").textContent = "Could not load data"; $("stats").replaceChildren(el("p", "err", "Neither technocore.chat nor the saved snapshot could be read. Reload to try again.")); return; }
+    }
+    render();
+    $("didInput").addEventListener("input", () => view && renderLookup(view));
+    setInterval(() => view && renderHeader(view), 30000);
+    if (mode === "live") setInterval(async () => { try { await pollLive(); updatedAt = new Date(); render(); } catch (_) { /* keep the last good data; the next poll retries */ } }, 60000);
+  }
+  start();
+})();
+</script>
+</body>
+</html>
