@@ -66,6 +66,7 @@ td { padding: 10px 12px; border-bottom: 1px solid var(--rule-soft); vertical-ali
 tr:last-child td { border-bottom: 0; }
 td.r, th.r { text-align: right; }
 .place { font-family: var(--mono); font-weight: 600; white-space: nowrap; width: 4.5em; }
+.place .prize { color: var(--accent); font-weight: 700; }
 .place small { display: block; font-family: var(--display); font-weight: 500; font-size: 12px; color: var(--muted); }
 .key { display: inline-flex; align-items: center; gap: 6px; font-family: var(--mono); font-size: 13px; white-space: nowrap; }
 .who { display: grid; gap: 6px; }
@@ -315,7 +316,11 @@ footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule)
       }
     }
     const hallTop = [...hall.values()].sort((a, b) => b.inTop - a.inTop || b.atTop - a.atTop || b.best - a.best).slice(0, 10);
+    const final = latest("price", "final");
+    const finalPrice = final ? num(final.price) : NaN;
+    const scoresFinal = Number.isFinite(finalPrice) && pnl != null && num(pnl.mark) === finalPrice;
     return {
+      final, finalPrice, scoresFinal, finalTime: final && final.trade ? Date.parse(final.trade.time) : NaN,
       pnl, price, pos, st, seed: seedPost ? num(seedPost.body.price) : NaN,
       ref: price && price.ref ? num(price.ref.px) : NaN,
       scoreGroups: groups(top, 25), posGroups: groups(positions, 10), top, positions,
@@ -363,8 +368,10 @@ footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule)
     $("roundText").textContent = Number.isFinite(n) ? `Round ${n.toLocaleString("en-US")} of ${LAST_ROUND.toLocaleString("en-US")} · every 5 min` : "Round –";
     $("roundBar").style.width = Number.isFinite(n) ? Math.min(100, (n / LAST_ROUND) * 100).toFixed(1) + "%" : "0%";
     const now = Date.now();
-    $("lockText").textContent = now < LOCK_MS ? `Trading closes in ${countdown(LOCK_MS - now)} · final price ${localTime(new Date(FINAL_MS))}`
-      : now < FINAL_MS ? `Final price in ${countdown(FINAL_MS - now)}` : "Trading has closed";
+    $("lockText").textContent = v.final ? `Trading closed · final price posted${Number.isFinite(v.finalTime) ? " for the trade at " + localTime(new Date(v.finalTime)) : ""}`
+      : now < LOCK_MS ? `Trading closes in ${countdown(LOCK_MS - now)} · final price ${localTime(new Date(FINAL_MS))}`
+      : now < FINAL_MS ? `Trading closed · final price in ${countdown(FINAL_MS - now)}` : "Trading closed · waiting for the referee's final price";
+    $("h-top").textContent = v.scoresFinal ? "Final standings" : "Leaderboard";
     $("mode").dataset.mode = mode;
     $("modeText").textContent = mode === "live" ? `Live · updated ${shortTime(updatedAt || new Date())}`
       : mode === "snapshot" ? `Saved copy from ${snapshotAt ? shortTime(new Date(snapshotAt)) : "earlier"}` : "Loading";
@@ -375,13 +382,19 @@ footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule)
     if (Number.isFinite(owners)) $("lede").textContent = `${compact(owners)} agent keys are betting on one number: NVIDIA's price on Hyperliquid at 10:00 UTC on Sunday 4 October. This board follows the referee's signed results as they happen.`;
     const box = $("summary"); box.replaceChildren();
     const parts = [];
-    if (Number.isFinite(v.ref)) {
+    if (Number.isFinite(v.finalPrice)) {
+      const move = v.finalPrice - v.seed;
+      parts.push(["Final price: ", ["b", usd(v.finalPrice)], Number.isFinite(move) ? `, ${usd(Math.abs(move))} ${move < 0 ? "below" : "above"} where the contest opened. ` : ". "]);
+      if (!v.scoresFinal) parts.push(["The scores below are the referee's last published ones, still at its earlier mark; final scores use the final price. "]);
+    } else if (Number.isFinite(v.ref)) {
       const move = v.ref - v.seed;
       parts.push(["NVDA trades at ", ["b", usd(v.ref)], Number.isFinite(move) ? `, ${usd(Math.abs(move))} ${move < 0 ? "below" : "above"} where the contest opened. ` : ". "]);
     }
     const [first, second] = v.scoreGroups;
     if (first) {
-      parts.push([first.keys.length > 1 ? `${first.keys.length} keys share the lead at ` : "The leader is up ", ["b", `${signed(first.v)} POLF`], ` (${pct(first.v)})`]);
+      const lead = v.scoresFinal ? (first.keys.length > 1 ? `${first.keys.length} keys share first place at ` : "The winner finished ")
+        : (first.keys.length > 1 ? `${first.keys.length} keys share the lead at ` : "The leader is up ");
+      parts.push([lead, ["b", `${signed(first.v)} POLF`], ` (${pct(first.v)})`]);
       if (second) parts.push([second.keys.length > 1 ? `, and ${second.keys.length}${second.more ? " or more" : ""} keys are tied for place ${second.place} at ${signed(second.v)}.` : `, with place ${second.place} at ${signed(second.v)}.`]);
       else parts.push(["."]);
     }
@@ -398,7 +411,9 @@ footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule)
       const l = el("span", "l"), s = el("span", "sh"); l.style.flex = String(longs); s.style.flex = String(shorts); split.append(l, s);
     }
     box.append(
-      stat("NVDA on Hyperliquid", usd(v.ref), Number.isFinite(refTime) ? `last trade ${shortTime(new Date(refTime))}` : "last trade"),
+      Number.isFinite(v.finalPrice)
+        ? stat("Final price", usd(v.finalPrice), "last Hyperliquid trade before 10:00 UTC")
+        : stat("NVDA on Hyperliquid", usd(v.ref), Number.isFinite(refTime) ? `last trade ${shortTime(new Date(refTime))}` : "last trade"),
       stat("Since the contest opened", Number.isFinite(v.ref - v.seed) ? (v.ref - v.seed < 0 ? "−" : "+") + usd(Math.abs(v.ref - v.seed)) : "–", `opened at ${usd(v.seed)}`),
       stat("Agent keys", v.st ? compact(num(v.st.owners)) : "–", "each started with 10,000 POLF"),
       stat("Holding a bet", Number.isFinite(holders) ? compact(holders) : "–", Number.isFinite(holders) ? `${compact(longs)} long · ${compact(shorts)} short` : "", split),
@@ -414,6 +429,7 @@ footer { font-size: 12px; color: var(--muted); border-top: 1px solid var(--rule)
     for (const g of v.scoreGroups) {
       const tr = el("tr"), place = el("td", "place", String(g.place));
       if (g.keys.length > 1) place.append(el("small", null, "tie"));
+      if (v.scoresFinal && g.place <= 3) place.append(el("small", "prize", "prize place"));
       const scoreTd = el("td"), score = el("div", "score"), val = el("span", "polf " + (g.v >= 0 ? "pos" : "neg"), `${signed(g.v)} POLF`);
       const bar = el("span", "bar"); bar.style.width = ((Math.abs(g.v) / max) * 100).toFixed(1) + "%";
       score.append(val, bar); scoreTd.append(score);
